@@ -7,6 +7,7 @@ services:
       - "8080:8080"
     depends_on:
       - db
+      - minio-setup
     environment:
       - PORT=8080
       - DB_HOST=db
@@ -15,7 +16,7 @@ services:
       - DB_PASSWORD=postgres
       - DB_NAME=easy_storage
       - STORAGE_TYPE=s3
-      - STORAGE_ENDPOINT=minio
+      - STORAGE_ENDPOINT=http://minio:9000
       - STORAGE_REGION=us-east-1
       - STORAGE_BUCKET=easy-storage
       - STORAGE_ACCESS_KEY=minio
@@ -40,11 +41,30 @@ services:
       - "9000:9000"
       - "9001:9001"
     environment:
-      - MINIO_ACCESS_KEY=minio
-      - MINIO_SECRET_KEY=minio123
+      - MINIO_ROOT_USER=minio
+      - MINIO_ROOT_PASSWORD=minio123
     volumes:
       - minio_data:/data
     command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+
+  # Helper service to create the bucket automatically
+  minio-setup:
+    image: minio/mc
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 5;
+      /usr/bin/mc config host add myminio http://minio:9000 minio minio123;
+      /usr/bin/mc mb myminio/easy-storage;
+      /usr/bin/mc anonymous set download myminio/easy-storage;
+      exit 0;
+      "
 
 volumes:
   postgres_data:

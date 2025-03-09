@@ -1,6 +1,7 @@
 package config
 
 import (
+	"log"
 	"os"
 	"strconv"
 )
@@ -52,7 +53,7 @@ func Load() *Config {
 			Port: getEnv("PORT", "8080"),
 		},
 		Database: DatabaseConfig{
-			Host:     getEnv("DB_HOST", "localhost"),
+			Host:     getEnv("DB_HOST", "127.0.0.1"),
 			Port:     getEnv("DB_PORT", "5432"),
 			User:     getEnv("DB_USER", "postgres"),
 			Password: getEnv("DB_PASSWORD", "postgres"),
@@ -60,11 +61,11 @@ func Load() *Config {
 		},
 		Storage: StorageConfig{
 			Type:           getEnv("STORAGE_TYPE", "s3"),
-			Endpoint:       getEnv("STORAGE_ENDPOINT", ""),
+			Endpoint:       getEnv("STORAGE_ENDPOINT", "http://localhost:9000"),
 			Region:         getEnv("STORAGE_REGION", "us-east-1"),
 			Bucket:         getEnv("STORAGE_BUCKET", "easy-storage"),
-			AccessKey:      getEnv("STORAGE_ACCESS_KEY", ""),
-			SecretKey:      getEnv("STORAGE_SECRET_KEY", ""),
+			AccessKey:      getEnv("STORAGE_ACCESS_KEY", "minio"),
+			SecretKey:      getEnv("STORAGE_SECRET_KEY", "minio123"),
 			ForcePathStyle: getEnvAsBool("STORAGE_FORCE_PATH_STYLE", true),
 		},
 		Auth: AuthConfig{
@@ -77,7 +78,10 @@ func Load() *Config {
 
 // Helper functions to get environment variables
 func getEnv(key, defaultValue string) string {
+	log.Printf("Fetching environment variable: %s", key)
 	if value, exists := os.LookupEnv(key); exists {
+		log.Printf("Fetching environment value: %s", value)
+
 		return value
 	}
 	return defaultValue
