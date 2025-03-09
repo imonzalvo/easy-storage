@@ -47,3 +47,9 @@ func (s *Service) ListUserFolders(userID string) ([]*Folder, error) {
 func (s *Service) DeleteFolder(id string) error {
 	return s.repo.Delete(id)
 }
+
+// ListFoldersByParent returns all folders for a user within a specific parent folder
+// If parentID is empty, it returns root-level folders
+func (s *Service) ListFoldersByParent(userID string, parentID string) ([]Folder, error) {
+	return s.repo.FindByUserAndParent(userID, parentID)
+}

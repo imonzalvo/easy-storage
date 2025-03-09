@@ -93,3 +93,36 @@ func (r *GormFolderRepository) BelongsToUser(folderID string, userID string) (bo
 	}
 	return count > 0, nil
 }
+
+// FindByUserAndParent finds folders by user ID and parent ID
+// If parentID is empty, it returns root-level folders (where ParentID is empty)
+func (r *GormFolderRepository) FindByUserAndParent(userID string, parentID string) ([]folder.Folder, error) {
+	var folderModels []models.Folder
+	query := r.db.Where("user_id = ?", userID)
+
+	if parentID == "" {
+		// Find root folders (where parent_id is empty)
+		query = query.Where("parent_id IS NULL")
+	} else {
+		// Find folders with the specified parent
+		query = query.Where("parent_id = ?", parentID)
+	}
+
+	if err := query.Find(&folderModels).Error; err != nil {
+		return nil, err
+	}
+
+	folders := make([]folder.Folder, len(folderModels))
+	for i, model := range folderModels {
+		folders[i] = folder.Folder{
+			ID:        model.ID,
+			Name:      model.Name,
+			ParentID:  model.ParentID,
+			UserID:    model.UserID,
+			CreatedAt: model.CreatedAt,
+			UpdatedAt: model.UpdatedAt,
+		}
+	}
+
+	return folders, nil
+}

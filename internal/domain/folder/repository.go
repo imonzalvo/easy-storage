@@ -13,6 +13,6 @@ type Repository interface {
 	FindByID(id string) (*Folder, error)
 	FindByUserID(userID string) ([]*Folder, error)
 	Delete(id string) error
-	// Add method to check if folder belongs to user
 	BelongsToUser(folderID string, userID string) (bool, error)
+	FindByUserAndParent(userID string, parentID string) ([]Folder, error)
 }
