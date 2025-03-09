@@ -1,6 +1,7 @@
 package file
 
 import (
+	"easy-storage/internal/domain/folder"
 	"io"
 )
 
@@ -14,20 +15,34 @@ type StorageProvider interface {
 
 // Service provides file operations
 type Service struct {
-	repo    Repository
-	storage StorageProvider
+	repo       Repository
+	folderRepo folder.Repository
+	storage    StorageProvider
 }
 
 // NewService creates a new file service
-func NewService(repo Repository, storage StorageProvider) *Service {
+func NewService(repo Repository, folderRepo folder.Repository, storage StorageProvider) *Service {
 	return &Service{
-		repo:    repo,
-		storage: storage,
+		repo:       repo,
+		folderRepo: folderRepo,
+		storage:    storage,
 	}
 }
 
 // UploadFile uploads a file to storage and saves metadata
 func (s *Service) UploadFile(filename string, size int64, contentType string, fileContent io.Reader, userID, folderID string) (*File, error) {
+	// Validate folder ownership if folderID is provided
+	if folderID != "" {
+		// Check if folder exists and belongs to the user
+		belongs, err := s.folderRepo.BelongsToUser(folderID, userID)
+		if err != nil {
+			return nil, err
+		}
+		if !belongs {
+			return nil, ErrInvalidFolder
+		}
+	}
+
 	// Upload file to storage
 	path, err := s.storage.Upload(filename, contentType, fileContent)
 	if err != nil {
@@ -82,4 +97,23 @@ func (s *Service) ListUserFiles(userID string, limit, offset int) ([]*File, erro
 // GetFileSignedURL returns a signed URL for a file
 func (s *Service) GetFileSignedURL(file *File, expiryTime int64) (string, error) {
 	return s.storage.GetSignedURL(file.Path, expiryTime)
+}
+
+// ListFilesInFolder lists files for a user in a specific folder
+func (s *Service) ListFilesInFolder(userID string, folderID string, limit, offset int) ([]*File, error) {
+	// If folderID is empty, list files in the root folder
+	if folderID == "" {
+		return s.repo.FindByUserIDAndFolder(userID, "", limit, offset)
+	}
+
+	// Validate folder ownership
+	belongs, err := s.folderRepo.BelongsToUser(folderID, userID)
+	if err != nil {
+		return nil, err
+	}
+	if !belongs {
+		return nil, ErrInvalidFolder
+	}
+
+	return s.repo.FindByUserIDAndFolder(userID, folderID, limit, offset)
 }

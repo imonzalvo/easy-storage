@@ -91,3 +91,38 @@ func (r *GormFileRepository) FindByUserID(userID string, limit, offset int) ([]*
 func (r *GormFileRepository) Delete(id string) error {
 	return r.db.Delete(&models.File{}, "id = ?", id).Error
 }
+
+// FindByUserIDAndFolder finds files by user ID and folder ID with pagination
+func (r *GormFileRepository) FindByUserIDAndFolder(userID string, folderID string, limit, offset int) ([]*file.File, error) {
+	var fileModels []models.File
+	query := r.db.Where("user_id = ?", userID)
+
+	if folderID == "" {
+		// Find files in the root folder (where folder_id is null or empty)
+		query = query.Where("folder_id IS NULL OR folder_id = ''")
+	} else {
+		// Find files in the specified folder
+		query = query.Where("folder_id = ?", folderID)
+	}
+
+	if err := query.Limit(limit).Offset(offset).Find(&fileModels).Error; err != nil {
+		return nil, err
+	}
+
+	files := make([]*file.File, len(fileModels))
+	for i, fileModel := range fileModels {
+		files[i] = &file.File{
+			ID:          fileModel.ID,
+			Name:        fileModel.Name,
+			Size:        fileModel.Size,
+			ContentType: fileModel.ContentType,
+			Path:        fileModel.Path,
+			UserID:      fileModel.UserID,
+			FolderID:    fileModel.FolderID,
+			CreatedAt:   fileModel.CreatedAt,
+			UpdatedAt:   fileModel.UpdatedAt,
+		}
+	}
+
+	return files, nil
+}
