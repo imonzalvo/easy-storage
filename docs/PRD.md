@@ -239,6 +239,129 @@ We will measure files uploaded by user by day.
 
 ### 5. Feature Specifications
 
+#### Project Structure
+
+```
+easy-storage/
+├── cmd/
+│   └── api/
+│       └── main.go                    # Application entry point
+├── internal/
+│   ├── domain/                        # Domain layer - core business logic
+│   │   ├── file/                      # File domain
+│   │   │   ├── entity.go              # File entity
+│   │   │   ├── repository.go          # Repository interface
+│   │   │   ├── service.go             # Domain service
+│   │   │   └── errors.go              # Domain specific errors
+│   │   ├── folder/                    # Folder domain
+│   │   │   ├── entity.go              # Folder entity
+│   │   │   ├── repository.go          # Repository interface
+│   │   │   ├── service.go             # Domain service
+│   │   │   └── errors.go              # Domain specific errors
+│   │   ├── user/                      # User domain
+│   │   │   ├── entity.go              # User entity
+│   │   │   ├── repository.go          # Repository interface
+│   │   │   ├── service.go             # Domain service
+│   │   │   └── errors.go              # Domain specific errors
+│   │   └── share/                     # Sharing domain
+│   │       ├── entity.go              # Share entity
+│   │       ├── repository.go          # Repository interface
+│   │       ├── service.go             # Domain service
+│   │       └── errors.go              # Domain specific errors
+│   ├── application/                   # Application layer - use cases
+│   │   ├── file/
+│   │   │   ├── commands/              # Command handlers
+│   │   │   │   ├── upload_file.go
+│   │   │   │   ├── delete_file.go
+│   │   │   │   └── rename_file.go
+│   │   │   └── queries/               # Query handlers
+│   │   │       ├── get_file.go
+│   │   │       └── list_files.go
+│   │   ├── folder/
+│   │   │   ├── commands/
+│   │   │   │   ├── create_folder.go
+│   │   │   │   └── delete_folder.go
+│   │   │   └── queries/
+│   │   │       └── get_folder_contents.go
+│   │   ├── user/
+│   │   │   ├── commands/
+│   │   │   │   ├── register_user.go
+│   │   │   │   └── update_profile.go
+│   │   │   └── queries/
+│   │   │       └── get_user.go
+│   │   └── share/
+│   │       ├── commands/
+│   │       │   ├── create_share.go
+│   │       │   └── revoke_share.go
+│   │       └── queries/
+│   │           └── get_share.go
+│   ├── infrastructure/                # Infrastructure layer
+│   │   ├── auth/                      # Authentication
+│   │   │   ├── jwt/
+│   │   │   │   └── provider.go
+│   │   │   └── middleware.go
+│   │   ├── persistence/               # Data storage
+│   │   │   ├── gorm/                  # GORM implementation
+│   │   │   │   ├── models/            # Database models
+│   │   │   │   │   ├── file.go
+│   │   │   │   │   ├── folder.go
+│   │   │   │   │   ├── user.go
+│   │   │   │   │   └── share.go
+│   │   │   │   ├── repositories/      # Repository implementations
+│   │   │   │   │   ├── file_repository.go
+│   │   │   │   │   ├── folder_repository.go
+│   │   │   │   │   ├── user_repository.go
+│   │   │   │   │   └── share_repository.go
+│   │   │   │   └── migrations/        # Database migrations
+│   │   │   │       └── migrations.go
+│   │   │   └── migrations.go          # Migration runner
+│   │   ├── storage/                   # File storage
+│   │   │   ├── s3/                    # S3 implementation
+│   │   │   │   └── storage.go
+│   │   │   └── interface.go           # Storage interface
+│   │   └── api/                       # API layer
+│   │       ├── router.go              # Router setup
+│   │       ├── handlers/              # HTTP handlers
+│   │       │   ├── file_handler.go
+│   │       │   ├── folder_handler.go
+│   │       │   ├── user_handler.go
+│   │       │   └── share_handler.go
+│   │       ├── middleware/            # HTTP middleware
+│   │       │   ├── auth.go
+│   │       │   └── logging.go
+│   │       ├── dto/                   # Data Transfer Objects
+│   │       │   ├── file_dto.go
+│   │       │   ├── folder_dto.go
+│   │       │   ├── user_dto.go
+│   │       │   └── share_dto.go
+│   │       └── validator/             # Request validation
+│   │           └── validator.go
+│   └── config/                        # Application configuration
+│       └── config.go
+├── pkg/                               # Public packages
+│   ├── logger/                        # Logging utilities
+│   │   └── logger.go
+│   └── utils/                         # Common utilities
+│       ├── pagination.go
+│       └── errors.go
+├── docs/                              # Documentation
+│   ├── api/                           # API documentation
+│   │   └── swagger.json
+│   └── architecture/                  # Architecture documentation
+│       └── overview.md
+├── scripts/                           # Scripts for development
+│   ├── setup.sh
+│   └── seed.go
+├── .env.example                       # Environment variable example
+├── .gitignore
+├── Dockerfile
+├── docker-compose.yml
+├── go.mod
+├── go.sum
+├── Makefile                           # Build and development commands
+└── README.md
+```
+
 #### User Authentication System
 
 **Description**:

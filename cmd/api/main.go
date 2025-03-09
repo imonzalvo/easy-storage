@@ -5,6 +5,7 @@ import (
 
 	"easy-storage/internal/config"
 	"easy-storage/internal/domain/file"
+	"easy-storage/internal/domain/folder"
 	"easy-storage/internal/domain/user"
 	"easy-storage/internal/infrastructure/api"
 	"easy-storage/internal/infrastructure/auth/jwt"
@@ -36,10 +37,12 @@ func main() {
 	// Initialize repositories
 	userRepo := repositories.NewGormUserRepository(db)
 	fileRepo := repositories.NewGormFileRepository(db)
+	folderRepo := repositories.NewGormFolderRepository(db)
 
 	// Initialize domain services
 	userService := user.NewService(userRepo)
 	fileService := file.NewService(fileRepo, storageProvider)
+	folderService := folder.NewService(folderRepo)
 
 	// Initialize JWT provider
 	jwtProvider := jwt.NewProvider(
@@ -58,7 +61,7 @@ func main() {
 	app.Use(cors.New())
 
 	// Setup routes
-	api.SetupRoutes(app, userService, fileService, jwtProvider)
+	api.SetupRoutes(app, userService, fileService, folderService, jwtProvider)
 
 	// Default route
 	app.Get("/", func(c *fiber.Ctx) error {
