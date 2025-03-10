@@ -126,3 +126,17 @@ func (r *GormFileRepository) FindByUserIDAndFolder(userID string, folderID strin
 
 	return files, nil
 }
+
+// DeleteByFolder deletes all files in the database that belong to a specific folder
+func (r *GormFileRepository) DeleteByFolder(folderID string) error {
+	// Find all files in the folder to get their paths
+	var files []models.File
+	if err := r.db.Where("folder_id = ?", folderID).Find(&files).Error; err != nil {
+		return err
+	}
+
+	// We don't need to delete from storage here since that's handled by the file service
+
+	// Delete all files from database
+	return r.db.Delete(&models.File{}, "folder_id = ?", folderID).Error
+}

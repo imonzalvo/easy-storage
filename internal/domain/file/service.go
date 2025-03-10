@@ -3,6 +3,7 @@ package file
 import (
 	"easy-storage/internal/domain/common"
 	"io"
+	"log"
 )
 
 // StorageProvider defines the interface for file storage operations
@@ -116,4 +117,31 @@ func (s *Service) ListFilesInFolder(userID string, folderID string) ([]*File, er
 	}
 
 	return s.repo.FindByUserIDAndFolder(userID, folderID)
+}
+
+// DeleteByFolder deletes all files in a folder
+func (s *Service) DeleteByFolder(userID, folderID string) error {
+	// Get all files in the folder
+	files, err := s.repo.FindByUserIDAndFolder(userID, folderID)
+	if err != nil {
+		return err
+	}
+
+	// Delete each file individually to ensure proper storage cleanup
+	for _, file := range files {
+		// Delete from storage
+		if err := s.storage.Delete(file.Path); err != nil {
+			// Log error but continue with other deletions
+			// We don't want to stop the process if one file fails to delete
+			// from storage, but we should log it for investigation
+			log.Printf("Error deleting file from storage: %v", err)
+		}
+
+		// Delete from repository
+		if err := s.repo.Delete(file.ID); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

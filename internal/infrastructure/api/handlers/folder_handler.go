@@ -155,3 +155,35 @@ func (h *FolderHandler) GetFolderContents(c *fiber.Ctx) error {
 		"total":     len(contents),
 	})
 }
+
+// DeleteFolder handles folder deletion
+func (h *FolderHandler) DeleteFolder(c *fiber.Ctx) error {
+	// Get user ID from context (set by auth middleware)
+	userID := c.Locals("userID").(string)
+
+	// Get folder ID from parameter
+	folderID := c.Params("folder_id")
+	if folderID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Folder ID is required",
+		})
+	}
+
+	// Delete folder and all its contents
+	err := h.folderService.DeleteFolder(folderID, userID)
+	if err != nil {
+		if err == folder.ErrFolderNotFound {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"error": "Folder not found or you don't have permission to delete it",
+			})
+		}
+		log.Printf("Error deleting folder: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Could not delete folder",
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "Folder deleted successfully",
+	})
+}

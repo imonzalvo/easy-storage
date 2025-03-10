@@ -17,4 +17,5 @@ type Repository interface {
 	FindByUserID(userID string, limit, offset int) ([]*File, error)
 	FindByUserIDAndFolder(userID string, folderID string) ([]*File, error)
 	Delete(id string) error
+	DeleteByFolder(folderID string) error
 }
