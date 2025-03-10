@@ -1,14 +1,18 @@
 package folder
 
+import "easy-storage/internal/domain/file"
+
 // Service provides folder operations
 type Service struct {
-	repo Repository
+	repo     Repository
+	fileRepo file.Repository
 }
 
 // NewService creates a new folder service
-func NewService(repo Repository) *Service {
+func NewService(repo Repository, fileRepo file.Repository) *Service {
 	return &Service{
-		repo: repo,
+		repo:     repo,
+		fileRepo: fileRepo,
 	}
 }
 
@@ -52,4 +56,32 @@ func (s *Service) DeleteFolder(id string) error {
 // If parentID is empty, it returns root-level folders
 func (s *Service) ListFoldersByParent(userID string, parentID string) ([]Folder, error) {
 	return s.repo.FindByUserAndParent(userID, parentID)
+}
+
+// GetFolderContents retrieves all files and folders within a specific folder
+func (s *Service) GetFolderContents(folderID string, userID string) ([]Folder, []*file.File, error) {
+	// Check if folder exists and belongs to user
+	if folderID != "" {
+		belongs, err := s.repo.BelongsToUser(folderID, userID)
+		if err != nil {
+			return nil, nil, err
+		}
+		if !belongs {
+			return nil, nil, ErrFolderNotFound
+		}
+	}
+
+	// Get subfolders
+	folders, err := s.repo.FindByUserAndParent(userID, folderID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Get files in folder using the file repository
+	files, err := s.fileRepo.FindByUserIDAndFolder(userID, folderID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return folders, files, nil
 }

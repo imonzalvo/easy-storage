@@ -93,7 +93,7 @@ func (r *GormFileRepository) Delete(id string) error {
 }
 
 // FindByUserIDAndFolder finds files by user ID and folder ID with pagination
-func (r *GormFileRepository) FindByUserIDAndFolder(userID string, folderID string, limit, offset int) ([]*file.File, error) {
+func (r *GormFileRepository) FindByUserIDAndFolder(userID string, folderID string) ([]*file.File, error) {
 	var fileModels []models.File
 	query := r.db.Where("user_id = ?", userID)
 
@@ -105,7 +105,7 @@ func (r *GormFileRepository) FindByUserIDAndFolder(userID string, folderID strin
 		query = query.Where("folder_id = ?", folderID)
 	}
 
-	if err := query.Limit(limit).Offset(offset).Find(&fileModels).Error; err != nil {
+	if err := query.Find(&fileModels).Error; err != nil {
 		return nil, err
 	}
 

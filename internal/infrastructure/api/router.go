@@ -45,6 +45,5 @@ func SetupRoutes(
 	folderRoutes := api.Group("/folders")
 	folderRoutes.Post("/", folderHandler.CreateFolder)
 	folderRoutes.Get("/", folderHandler.ListFolders)
-	// folderRoutes.Get("/:id", folderHandler.GetFolder)
-	// folderRoutes.Delete("/:id", folderHandler.DeleteFolder)
+	folderRoutes.Get("/:folder_id", folderHandler.GetFolderContents)
 }

@@ -97,3 +97,61 @@ func (h *FolderHandler) ListFolders(c *fiber.Ctx) error {
 		Folders: folderResponses,
 	})
 }
+
+// GetFolderContents handles retrieving all contents of a folder
+func (h *FolderHandler) GetFolderContents(c *fiber.Ctx) error {
+	// Get user ID from context (set by auth middleware)
+	userID := c.Locals("userID").(string)
+
+	// Get folder ID from parameter
+	folderID := c.Params("folder_id")
+
+	// Get folder contents
+	folders, files, err := h.folderService.GetFolderContents(folderID, userID)
+	if err != nil {
+		if err == folder.ErrFolderNotFound {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"error": "Folder not found or you don't have permission to access it",
+			})
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Could not retrieve folder contents",
+		})
+	}
+
+	// Build response for folders
+	folderResponses := make([]map[string]interface{}, len(folders))
+	for i, folder := range folders {
+		folderResponses[i] = map[string]interface{}{
+			"id":         folder.ID,
+			"name":       folder.Name,
+			"parent_id":  folder.ParentID,
+			"type":       "folder",
+			"created_at": folder.CreatedAt.Format(time.RFC3339),
+			"updated_at": folder.UpdatedAt.Format(time.RFC3339),
+		}
+	}
+
+	// Build response for files
+	fileResponses := make([]map[string]interface{}, len(files))
+	for i, file := range files {
+		fileResponses[i] = map[string]interface{}{
+			"id":           file.ID,
+			"name":         file.Name,
+			"size":         file.Size,
+			"content_type": file.ContentType,
+			"type":         "file",
+			"created_at":   file.CreatedAt.Format(time.RFC3339),
+			"updated_at":   file.UpdatedAt.Format(time.RFC3339),
+		}
+	}
+
+	// Combine both responses
+	contents := append(folderResponses, fileResponses...)
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"folder_id": folderID,
+		"contents":  contents,
+		"total":     len(contents),
+	})
+}

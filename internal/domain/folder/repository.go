@@ -1,6 +1,8 @@
 package folder
 
-import "errors"
+import (
+	"errors"
+)
 
 var (
 	ErrFolderNotFound = errors.New("folder not found")

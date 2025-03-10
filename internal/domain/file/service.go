@@ -100,10 +100,10 @@ func (s *Service) GetFileSignedURL(file *File, expiryTime int64) (string, error)
 }
 
 // ListFilesInFolder lists files for a user in a specific folder
-func (s *Service) ListFilesInFolder(userID string, folderID string, limit, offset int) ([]*File, error) {
+func (s *Service) ListFilesInFolder(userID string, folderID string) ([]*File, error) {
 	// If folderID is empty, list files in the root folder
 	if folderID == "" {
-		return s.repo.FindByUserIDAndFolder(userID, "", limit, offset)
+		return s.repo.FindByUserIDAndFolder(userID, "")
 	}
 
 	// Validate folder ownership
@@ -115,5 +115,5 @@ func (s *Service) ListFilesInFolder(userID string, folderID string, limit, offse
 		return nil, ErrInvalidFolder
 	}
 
-	return s.repo.FindByUserIDAndFolder(userID, folderID, limit, offset)
+	return s.repo.FindByUserIDAndFolder(userID, folderID)
 }

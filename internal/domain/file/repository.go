@@ -15,6 +15,6 @@ type Repository interface {
 	Save(file *File) error
 	FindByID(id string) (*File, error)
 	FindByUserID(userID string, limit, offset int) ([]*File, error)
-	FindByUserIDAndFolder(userID string, folderID string, limit, offset int) ([]*File, error)
+	FindByUserIDAndFolder(userID string, folderID string) ([]*File, error)
 	Delete(id string) error
 }
