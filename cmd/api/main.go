@@ -41,8 +41,8 @@ func main() {
 
 	// Initialize domain services
 	userService := user.NewService(userRepo)
-	fileService := file.NewService(fileRepo, folderRepo, storageProvider)
 	folderService := folder.NewService(folderRepo)
+	fileService := file.NewService(fileRepo, folderService, storageProvider)
 
 	// Initialize JWT provider
 	jwtProvider := jwt.NewProvider(

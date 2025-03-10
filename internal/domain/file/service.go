@@ -1,7 +1,7 @@
 package file
 
 import (
-	"easy-storage/internal/domain/folder"
+	"easy-storage/internal/domain/common"
 	"io"
 )
 
@@ -15,17 +15,17 @@ type StorageProvider interface {
 
 // Service provides file operations
 type Service struct {
-	repo       Repository
-	folderRepo folder.Repository
-	storage    StorageProvider
+	repo            Repository
+	folderValidator common.FolderValidator
+	storage         StorageProvider
 }
 
 // NewService creates a new file service
-func NewService(repo Repository, folderRepo folder.Repository, storage StorageProvider) *Service {
+func NewService(repo Repository, folderValidator common.FolderValidator, storage StorageProvider) *Service {
 	return &Service{
-		repo:       repo,
-		folderRepo: folderRepo,
-		storage:    storage,
+		repo:            repo,
+		folderValidator: folderValidator,
+		storage:         storage,
 	}
 }
 
@@ -34,7 +34,7 @@ func (s *Service) UploadFile(filename string, size int64, contentType string, fi
 	// Validate folder ownership if folderID is provided
 	if folderID != "" {
 		// Check if folder exists and belongs to the user
-		belongs, err := s.folderRepo.BelongsToUser(folderID, userID)
+		belongs, err := s.folderValidator.BelongsToUser(folderID, userID)
 		if err != nil {
 			return nil, err
 		}
@@ -107,7 +107,7 @@ func (s *Service) ListFilesInFolder(userID string, folderID string, limit, offse
 	}
 
 	// Validate folder ownership
-	belongs, err := s.folderRepo.BelongsToUser(folderID, userID)
+	belongs, err := s.folderValidator.BelongsToUser(folderID, userID)
 	if err != nil {
 		return nil, err
 	}
