@@ -128,3 +128,81 @@ func (r *GormFolderRepository) FindByUserAndParent(userID string, parentID strin
 
 	return folders, nil
 }
+
+// FindByUserAndParentPaginated returns paginated folders by user ID and parent ID
+// If parentID is empty, it returns root-level folders (where ParentID is empty)
+// It also returns the total count of folders matching the criteria
+func (r *GormFolderRepository) FindByUserAndParentPaginated(userID string, parentID string, page, pageSize int) ([]folder.Folder, int64, error) {
+	var folderModels []models.Folder
+	var totalCount int64
+
+	// Build the base query
+	query := r.db.Model(&models.Folder{}).Where("user_id = ?", userID)
+
+	if parentID == "" {
+		// Find root folders (where parent_id is empty)
+		query = query.Where("parent_id IS NULL")
+	} else {
+		// Find folders with the specified parent
+		query = query.Where("parent_id = ?", parentID)
+	}
+
+	// Count total matching records
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Apply pagination
+	offset := (page - 1) * pageSize
+	if err := query.Offset(offset).Limit(pageSize).Find(&folderModels).Error; err != nil {
+		return nil, 0, err
+	}
+
+	folders := make([]folder.Folder, len(folderModels))
+	for i, model := range folderModels {
+		folders[i] = folder.Folder{
+			ID:        model.ID,
+			Name:      model.Name,
+			ParentID:  model.ParentID,
+			UserID:    model.UserID,
+			CreatedAt: model.CreatedAt,
+			UpdatedAt: model.UpdatedAt,
+		}
+	}
+
+	return folders, totalCount, nil
+}
+
+// FindAllByUserPaginated returns all folders for a user with pagination
+func (r *GormFolderRepository) FindAllByUserPaginated(userID string, page, pageSize int) ([]folder.Folder, int64, error) {
+	var folderModels []models.Folder
+	var totalCount int64
+
+	// Build the base query for all user folders
+	query := r.db.Model(&models.Folder{}).Where("user_id = ?", userID)
+
+	// Count total matching records
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Apply pagination
+	offset := (page - 1) * pageSize
+	if err := query.Offset(offset).Limit(pageSize).Find(&folderModels).Error; err != nil {
+		return nil, 0, err
+	}
+
+	folders := make([]folder.Folder, len(folderModels))
+	for i, model := range folderModels {
+		folders[i] = folder.Folder{
+			ID:        model.ID,
+			Name:      model.Name,
+			ParentID:  model.ParentID,
+			UserID:    model.UserID,
+			CreatedAt: model.CreatedAt,
+			UpdatedAt: model.UpdatedAt,
+		}
+	}
+
+	return folders, totalCount, nil
+}

@@ -58,6 +58,35 @@ func (s *Service) ListFoldersByParent(userID string, parentID string) ([]Folder,
 	return s.repo.FindByUserAndParent(userID, parentID)
 }
 
+// ListFoldersByParentPaginated returns paginated folders for a user within a specific parent folder
+// If parentID is empty, it returns root-level folders
+// It also returns the total count of folders and calculated pagination information
+func (s *Service) ListFoldersByParentPaginated(userID string, parentID string, page, pageSize int) ([]Folder, int64, error) {
+	// Ensure valid pagination parameters
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 10 // Default page size
+	}
+
+	return s.repo.FindByUserAndParentPaginated(userID, parentID, page, pageSize)
+}
+
+// ListAllFoldersPaginated returns all folders for a user with pagination
+// It also returns the total count of folders and calculated pagination information
+func (s *Service) ListAllFoldersPaginated(userID string, page, pageSize int) ([]Folder, int64, error) {
+	// Ensure valid pagination parameters
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 10 // Default page size
+	}
+
+	return s.repo.FindAllByUserPaginated(userID, page, pageSize)
+}
+
 // GetFolderContents retrieves all files and folders within a specific folder
 func (s *Service) GetFolderContents(folderID string, userID string) ([]Folder, []*file.File, error) {
 	// Check if folder exists and belongs to user

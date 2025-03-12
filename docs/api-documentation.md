@@ -297,13 +297,20 @@ Creates a new folder.
 
 #### List Folders
 
-Lists all folders for the current user.
+Lists folders for the current user.
 
 - **URL**: `/api/folders`
 - **Method**: `GET`
 - **Auth Required**: Yes
 - **Query Parameters**:
   - `parentId` (optional): ID of the parent folder to list contents of
+  - `showRootOnly` (optional): If true, only root folders will be returned (default: false)
+  - `page` (optional): Page number for pagination (default: 1)
+  - `pageSize` (optional): Number of folders per page (default: 10, max: 100)
+- **Behavior**:
+  - If `parentId` is provided: Returns folders within that specific parent folder
+  - If `showRootOnly=true` and no `parentId`: Returns only root-level folders (folders with no parent)
+  - If neither `parentId` nor `showRootOnly` is provided: Returns all folders for the user
 - **Success Response**: `200 OK`
   ```json
   {
@@ -322,7 +329,15 @@ Lists all folders for the current user.
         "created_at": "2023-01-02T12:00:00Z",
         "updated_at": "2023-01-02T12:00:00Z"
       }
-    ]
+    ],
+    "pagination": {
+      "current_page": 1,
+      "page_size": 10,
+      "total_items": 25,
+      "total_pages": 3,
+      "has_next_page": true,
+      "has_prev_page": false
+    }
   }
   ```
 
@@ -611,8 +626,23 @@ The API implements rate limiting to prevent abuse. If you exceed the rate limit,
 
 Some endpoints that return lists support pagination using the following query parameters:
 
-- `limit`: Number of items to return per page (default: 20)
-- `offset`: Number of items to skip (default: 0)
+- `page`: Page number to return (default: 1)
+- `pageSize`: Number of items to return per page (default varies by endpoint)
+
+Paginated responses include a `pagination` object with the following properties:
+
+```json
+{
+  "current_page": 1,
+  "page_size": 10,
+  "total_items": 25,
+  "total_pages": 3,
+  "has_next_page": true,
+  "has_prev_page": false
+}
+```
+
+This information can be used to build pagination controls in the user interface.
 
 ## Sorting
 

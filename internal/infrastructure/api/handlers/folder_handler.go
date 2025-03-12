@@ -72,13 +72,48 @@ func (h *FolderHandler) ListFolders(c *fiber.Ctx) error {
 	// Get parent folder ID from query parameter (optional)
 	parentID := c.Query("parentId", "")
 
-	// List folders
-	folders, err := h.folderService.ListFoldersByParent(userID, parentID)
+	// Get the showRootOnly parameter (optional, defaults to false)
+	showRootOnly := c.QueryBool("showRootOnly", false)
+
+	// Get pagination parameters from query
+	page := c.QueryInt("page", 1)
+	pageSize := c.QueryInt("pageSize", 10)
+
+	// Validate pagination parameters
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 10 // Default page size with a reasonable limit
+	}
+
+	var folders []folder.Folder
+	var totalCount int64
+	var err error
+
+	// Determine which folders to list based on parameters
+	if parentID != "" {
+		// If parentId is provided, show folders within that parent
+		folders, totalCount, err = h.folderService.ListFoldersByParentPaginated(userID, parentID, page, pageSize)
+	} else if showRootOnly {
+		// If showRootOnly is true and no parentId, show only root folders
+		folders, totalCount, err = h.folderService.ListFoldersByParentPaginated(userID, "", page, pageSize)
+	} else {
+		// Otherwise, show all folders
+		folders, totalCount, err = h.folderService.ListAllFoldersPaginated(userID, page, pageSize)
+	}
+
 	if err != nil {
 		log.Printf("error, %s", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Could not list folders",
 		})
+	}
+
+	// Calculate total pages
+	totalPages := int(totalCount) / pageSize
+	if int(totalCount)%pageSize > 0 {
+		totalPages++
 	}
 
 	// Build response
@@ -93,8 +128,19 @@ func (h *FolderHandler) ListFolders(c *fiber.Ctx) error {
 		}
 	}
 
+	// Create pagination info
+	paginationInfo := dto.PaginationInfo{
+		CurrentPage: page,
+		PageSize:    pageSize,
+		TotalItems:  totalCount,
+		TotalPages:  totalPages,
+		HasNextPage: page < totalPages,
+		HasPrevPage: page > 1,
+	}
+
 	return c.Status(fiber.StatusOK).JSON(dto.FoldersListResponse{
-		Folders: folderResponses,
+		Folders:    folderResponses,
+		Pagination: &paginationInfo,
 	})
 }
 
