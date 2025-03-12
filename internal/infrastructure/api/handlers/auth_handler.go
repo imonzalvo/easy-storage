@@ -186,3 +186,33 @@ func (h *AuthHandler) GetMe(c *fiber.Ctx) error {
 		Name:  user.Name,
 	})
 }
+
+// ChangePassword handles password change requests
+func (h *AuthHandler) ChangePassword(c *fiber.Ctx) error {
+	var req dto.ChangePasswordRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
+	}
+
+	// Get user ID from context (set by auth middleware)
+	userID := c.Locals("userID").(string)
+
+	// Change password
+	err := h.userService.ChangePassword(userID, req.CurrentPassword, req.NewPassword)
+	if err != nil {
+		if err == user.ErrInvalidCredentials {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "Current password is incorrect",
+			})
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to change password",
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "Password changed successfully",
+	})
+}

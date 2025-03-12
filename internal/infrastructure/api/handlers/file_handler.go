@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"easy-storage/internal/domain/access"
 	"easy-storage/internal/domain/file"
 
 	"github.com/gofiber/fiber/v2"
@@ -11,13 +12,15 @@ import (
 
 // FileHandler handles file-related API endpoints
 type FileHandler struct {
-	fileService *file.Service
+	fileService   *file.Service
+	accessService *access.Service
 }
 
 // NewFileHandler creates a new file handler
-func NewFileHandler(fileService *file.Service) *FileHandler {
+func NewFileHandler(fileService *file.Service, accessService *access.Service) *FileHandler {
 	return &FileHandler{
-		fileService: fileService,
+		fileService:   fileService,
+		accessService: accessService,
 	}
 }
 
@@ -99,6 +102,14 @@ func (h *FileHandler) DownloadFile(c *fiber.Ctx) error {
 		})
 	}
 
+	// Check if file belongs to user or has been shared with user
+	hasAccess, err := h.accessService.CheckFileAccess(c.Context(), fileID, userID)
+	if err != nil || !hasAccess {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"error": "You don't have permission to access this file",
+		})
+	}
+
 	// Get file from service
 	downloadedFile, err := h.fileService.GetFile(fileID)
 	if err != nil {
@@ -109,13 +120,6 @@ func (h *FileHandler) DownloadFile(c *fiber.Ctx) error {
 		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Could not retrieve file",
-		})
-	}
-
-	// Check if file belongs to user
-	if downloadedFile.UserID != userID {
-		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-			"error": "You don't have permission to access this file",
 		})
 	}
 

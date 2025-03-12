@@ -4,6 +4,7 @@ import (
 	"easy-storage/internal/domain/folder"
 	"easy-storage/internal/infrastructure/persistence/gorm/models"
 	"errors"
+	"log"
 
 	"gorm.io/gorm"
 )
@@ -37,6 +38,7 @@ func (r *GormFolderRepository) Save(f *folder.Folder) error {
 
 // FindByID finds a folder by ID
 func (r *GormFolderRepository) FindByID(id string) (*folder.Folder, error) {
+	log.Print("holaaaaa estoy aca")
 	var folderModel models.Folder
 	if err := r.db.First(&folderModel, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

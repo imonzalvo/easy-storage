@@ -86,3 +86,29 @@ func (s *Service) UpdateUser(user *User) error {
 func (s *Service) DeleteUser(id string) error {
 	return s.repo.Delete(id)
 }
+
+// ChangePassword changes a user's password
+func (s *Service) ChangePassword(userID, currentPassword, newPassword string) error {
+	// Get the user
+	user, err := s.repo.FindByID(userID)
+	if err != nil {
+		return err
+	}
+
+	// Verify current password
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(currentPassword)); err != nil {
+		return ErrInvalidCredentials
+	}
+
+	// Hash new password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	// Update user with new password
+	user.Password = string(hashedPassword)
+	user.UpdatedAt = time.Now()
+
+	return s.repo.Update(user)
+}
