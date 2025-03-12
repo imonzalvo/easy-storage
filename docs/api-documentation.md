@@ -205,6 +205,11 @@ Lists all files for the current user.
 - **URL**: `/api/files`
 - **Method**: `GET`
 - **Auth Required**: Yes
+- **Query Parameters**:
+  - `limit` (optional): Number of files to return per page (default: 20)
+  - `offset` (optional): Number of files to skip (default: 0)
+  - `sort` (optional): Field to sort by - `name`, `size`, or `created_at` (default: `created_at`)
+  - `sort_dir` (optional): Sort direction - `asc` or `desc` (default: `desc`)
 - **Success Response**: `200 OK`
   ```json
   {
@@ -608,6 +613,15 @@ Some endpoints that return lists support pagination using the following query pa
 
 - `limit`: Number of items to return per page (default: 20)
 - `offset`: Number of items to skip (default: 0)
+
+## Sorting
+
+Endpoints that return lists of items often support sorting with the following parameters:
+
+- `sort`: Field to sort by (available fields depend on the endpoint)
+- `sort_dir`: Sort direction - `asc` for ascending or `desc` for descending (default: `desc`)
+
+For example, the `/api/files` endpoint supports sorting by `name`, `size`, or `created_at`.
 
 ## Versioning
 
