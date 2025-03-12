@@ -1,4 +1,3 @@
-// internal/infrastructure/api/dto/user_dto.go
 package dto
 
 // RegisterUserRequest represents a user registration request
@@ -16,9 +15,19 @@ type LoginRequest struct {
 
 // UserResponse represents a user response
 type UserResponse struct {
-	ID    string `json:"id"`
-	Email string `json:"email"`
-	Name  string `json:"name"`
+	ID           string `json:"id"`
+	Email        string `json:"email"`
+	Name         string `json:"name"`
+	StorageQuota int64  `json:"storage_quota"`
+	StorageUsed  int64  `json:"storage_used"`
+}
+
+// StorageStats represents storage statistics
+type StorageStats struct {
+	Quota     int64   `json:"quota"`
+	Used      int64   `json:"used"`
+	Available int64   `json:"available"`
+	UsedPerc  float64 `json:"used_percentage"`
 }
 
 // AuthResponse represents an authentication response

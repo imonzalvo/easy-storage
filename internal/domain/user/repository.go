@@ -7,4 +7,7 @@ type Repository interface {
 	FindByEmail(email string) (*User, error)
 	Update(user *User) error
 	Delete(id string) error
+	UpdateStorageUsed(userID string, storageUsed int64) error
+	IncrementStorageUsed(userID string, size int64) error
+	DecrementStorageUsed(userID string, size int64) error
 }

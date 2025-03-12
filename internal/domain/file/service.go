@@ -2,6 +2,7 @@ package file
 
 import (
 	"easy-storage/internal/domain/common"
+	"easy-storage/internal/domain/user"
 	"io"
 	"log"
 )
@@ -19,14 +20,16 @@ type Service struct {
 	repo            Repository
 	folderValidator common.FolderValidator
 	storage         StorageProvider
+	userStorage     *user.StorageService
 }
 
 // NewService creates a new file service
-func NewService(repo Repository, folderValidator common.FolderValidator, storage StorageProvider) *Service {
+func NewService(repo Repository, folderValidator common.FolderValidator, storage StorageProvider, userStorage *user.StorageService) *Service {
 	return &Service{
 		repo:            repo,
 		folderValidator: folderValidator,
 		storage:         storage,
+		userStorage:     userStorage,
 	}
 }
 
@@ -44,9 +47,23 @@ func (s *Service) UploadFile(filename string, size int64, contentType string, fi
 		}
 	}
 
+	// Check if user has enough storage quota
+	if s.userStorage != nil {
+		if err := s.userStorage.AddStorage(userID, size); err != nil {
+			if err == user.ErrStorageQuotaExceeded {
+				return nil, err
+			}
+			return nil, err
+		}
+	}
+
 	// Upload file to storage
 	path, err := s.storage.Upload(filename, contentType, fileContent)
 	if err != nil {
+		// Rollback storage usage increment if upload fails
+		if s.userStorage != nil {
+			_ = s.userStorage.RemoveStorage(userID, size)
+		}
 		return nil, err
 	}
 
@@ -57,6 +74,10 @@ func (s *Service) UploadFile(filename string, size int64, contentType string, fi
 	if err := s.repo.Save(file); err != nil {
 		// Try to clean up the stored file if metadata save fails
 		_ = s.storage.Delete(path)
+		// Rollback storage usage increment if save fails
+		if s.userStorage != nil {
+			_ = s.userStorage.RemoveStorage(userID, size)
+		}
 		return nil, err
 	}
 
@@ -86,13 +107,21 @@ func (s *Service) DeleteFile(id string) error {
 		return err
 	}
 
+	// Update user storage statistics
+	if s.userStorage != nil {
+		if err := s.userStorage.RemoveStorage(file.UserID, file.Size); err != nil {
+			log.Printf("Error updating storage statistics: %v", err)
+			// Continue with deletion even if stats update fails
+		}
+	}
+
 	// Delete from storage
 	return s.storage.Delete(file.Path)
 }
 
 // ListUserFiles lists files for a user
-func (s *Service) ListUserFiles(userID string, limit, offset int) ([]*File, error) {
-	return s.repo.FindByUserID(userID, limit, offset)
+func (s *Service) ListUserFiles(userID string, limit, offset int, sortBy, sortDir string) ([]*File, error) {
+	return s.repo.FindByUserID(userID, limit, offset, sortBy, sortDir)
 }
 
 // GetFileSignedURL returns a signed URL for a file
@@ -140,6 +169,14 @@ func (s *Service) DeleteByFolder(userID, folderID string) error {
 		// Delete from repository
 		if err := s.repo.Delete(file.ID); err != nil {
 			return err
+		}
+
+		// Update user storage statistics
+		if s.userStorage != nil {
+			if err := s.userStorage.RemoveStorage(userID, file.Size); err != nil {
+				log.Printf("Error updating storage statistics: %v", err)
+				// Continue with deletion even if stats update fails
+			}
 		}
 	}
 

@@ -61,9 +61,11 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 	// Return user info and tokens
 	return c.Status(fiber.StatusCreated).JSON(dto.AuthResponse{
 		User: dto.UserResponse{
-			ID:    newUser.ID,
-			Email: newUser.Email,
-			Name:  newUser.Name,
+			ID:           newUser.ID,
+			Email:        newUser.Email,
+			Name:         newUser.Name,
+			StorageQuota: newUser.StorageQuota,
+			StorageUsed:  newUser.StorageUsed,
 		},
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
@@ -111,9 +113,11 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	// Return user info and tokens
 	return c.Status(fiber.StatusOK).JSON(dto.AuthResponse{
 		User: dto.UserResponse{
-			ID:    authenticatedUser.ID,
-			Email: authenticatedUser.Email,
-			Name:  authenticatedUser.Name,
+			ID:           authenticatedUser.ID,
+			Email:        authenticatedUser.Email,
+			Name:         authenticatedUser.Name,
+			StorageQuota: authenticatedUser.StorageQuota,
+			StorageUsed:  authenticatedUser.StorageUsed,
 		},
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
@@ -180,10 +184,35 @@ func (h *AuthHandler) GetMe(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.Status(fiber.StatusOK).JSON(dto.UserResponse{
-		ID:    user.ID,
-		Email: user.Email,
-		Name:  user.Name,
+	// Calculate storage statistics
+	quota, used, err := h.userService.GetStorageStats(userID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to get storage statistics",
+		})
+	}
+
+	// Calculate available space and percentage used
+	available := quota - used
+	var usedPercentage float64 = 0
+	if quota > 0 {
+		usedPercentage = float64(used) / float64(quota) * 100
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"user": dto.UserResponse{
+			ID:           user.ID,
+			Email:        user.Email,
+			Name:         user.Name,
+			StorageQuota: quota,
+			StorageUsed:  used,
+		},
+		"storage": dto.StorageStats{
+			Quota:     quota,
+			Used:      used,
+			Available: available,
+			UsedPerc:  usedPercentage,
+		},
 	})
 }
 

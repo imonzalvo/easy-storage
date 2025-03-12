@@ -6,6 +6,7 @@ import (
 
 	"easy-storage/internal/domain/access"
 	"easy-storage/internal/domain/file"
+	"easy-storage/internal/domain/user"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -72,6 +73,11 @@ func (h *FileHandler) UploadFile(c *fiber.Ctx) error {
 		folderID,
 	)
 	if err != nil {
+		if err == user.ErrStorageQuotaExceeded {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"error": "Storage quota exceeded",
+			})
+		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": fmt.Sprintf("Could not upload file: %v", err),
 		})
@@ -145,12 +151,38 @@ func (h *FileHandler) ListFiles(c *fiber.Ctx) error {
 	// Get user ID from context (set by auth middleware)
 	userID := c.Locals("userID").(string)
 
-	// Get pagination parameters
-	limit := 20
-	offset := 0
+	// Get pagination parameters from query
+	limit := c.QueryInt("limit", 20)
+	offset := c.QueryInt("offset", 0)
+
+	// Get sort parameter (default to created_at)
+	sort := c.Query("sort", "created_at")
+
+	// Get sort direction (default to desc)
+	sortDir := c.Query("sort_dir", "desc")
+
+	// Validate sort parameter
+	validSorts := map[string]bool{
+		"name":       true,
+		"size":       true,
+		"created_at": true,
+	}
+
+	if !validSorts[sort] {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid sort parameter. Valid values are: name, size, created_at",
+		})
+	}
+
+	// Validate sort direction
+	if sortDir != "asc" && sortDir != "desc" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid sort_dir parameter. Valid values are: asc, desc",
+		})
+	}
 
 	// List files
-	files, err := h.fileService.ListUserFiles(userID, limit, offset)
+	files, err := h.fileService.ListUserFiles(userID, limit, offset, sort, sortDir)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Could not list files",

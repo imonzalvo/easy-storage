@@ -16,12 +16,17 @@ var ErrInvalidCredentials = errors.New("invalid credentials")
 
 // Service provides user operations
 type Service struct {
-	repo Repository
+	repo           Repository
+	storageService *StorageService
 }
 
 // NewService creates a new user service
 func NewService(repo Repository) *Service {
-	return &Service{repo: repo}
+	storageService := NewStorageService(repo)
+	return &Service{
+		repo:           repo,
+		storageService: storageService,
+	}
 }
 
 // RegisterUser registers a new user
@@ -41,11 +46,13 @@ func (s *Service) RegisterUser(email, password, name string) (*User, error) {
 	}
 
 	user := &User{
-		Email:     email,
-		Password:  string(hashedPassword),
-		Name:      name,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		Email:        email,
+		Password:     string(hashedPassword),
+		Name:         name,
+		StorageQuota: 5 * 1024 * 1024 * 1024, // 5GB default
+		StorageUsed:  0,
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
 	}
 
 	if err := s.repo.Save(user); err != nil {
@@ -111,4 +118,14 @@ func (s *Service) ChangePassword(userID, currentPassword, newPassword string) er
 	user.UpdatedAt = time.Now()
 
 	return s.repo.Update(user)
+}
+
+// GetStorageService returns the storage service
+func (s *Service) GetStorageService() *StorageService {
+	return s.storageService
+}
+
+// GetStorageStats gets a user's storage statistics
+func (s *Service) GetStorageStats(userID string) (quota int64, used int64, err error) {
+	return s.storageService.GetStorageStats(userID)
 }

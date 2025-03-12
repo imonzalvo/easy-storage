@@ -27,8 +27,8 @@ func (r *GormUserRepository) Save(u *user.User) error {
 		Email:        u.Email,
 		PasswordHash: u.Password,
 		Name:         u.Name,
-		StorageQuota: 5 * 1024 * 1024 * 1024, // 5GB default
-		StorageUsed:  0,
+		StorageQuota: u.StorageQuota,
+		StorageUsed:  u.StorageUsed,
 	}
 
 	if err := r.db.Save(userModel).Error; err != nil {
@@ -50,12 +50,14 @@ func (r *GormUserRepository) FindByID(id string) (*user.User, error) {
 	}
 
 	return &user.User{
-		ID:        userModel.ID,
-		Email:     userModel.Email,
-		Password:  userModel.PasswordHash,
-		Name:      userModel.Name,
-		CreatedAt: userModel.CreatedAt,
-		UpdatedAt: userModel.UpdatedAt,
+		ID:           userModel.ID,
+		Email:        userModel.Email,
+		Password:     userModel.PasswordHash,
+		Name:         userModel.Name,
+		StorageQuota: userModel.StorageQuota,
+		StorageUsed:  userModel.StorageUsed,
+		CreatedAt:    userModel.CreatedAt,
+		UpdatedAt:    userModel.UpdatedAt,
 	}, nil
 }
 
@@ -70,12 +72,14 @@ func (r *GormUserRepository) FindByEmail(email string) (*user.User, error) {
 	}
 
 	return &user.User{
-		ID:        userModel.ID,
-		Email:     userModel.Email,
-		Password:  userModel.PasswordHash,
-		Name:      userModel.Name,
-		CreatedAt: userModel.CreatedAt,
-		UpdatedAt: userModel.UpdatedAt,
+		ID:           userModel.ID,
+		Email:        userModel.Email,
+		Password:     userModel.PasswordHash,
+		Name:         userModel.Name,
+		StorageQuota: userModel.StorageQuota,
+		StorageUsed:  userModel.StorageUsed,
+		CreatedAt:    userModel.CreatedAt,
+		UpdatedAt:    userModel.UpdatedAt,
 	}, nil
 }
 
@@ -87,10 +91,33 @@ func (r *GormUserRepository) Update(u *user.User) error {
 			"email":         u.Email,
 			"password_hash": u.Password,
 			"name":          u.Name,
+			"storage_quota": u.StorageQuota,
+			"storage_used":  u.StorageUsed,
 		}).Error
 }
 
 // Delete deletes a user
 func (r *GormUserRepository) Delete(id string) error {
 	return r.db.Delete(&models.User{}, "id = ?", id).Error
+}
+
+// UpdateStorageUsed updates only the storage used field for a user
+func (r *GormUserRepository) UpdateStorageUsed(userID string, storageUsed int64) error {
+	return r.db.Model(&models.User{}).
+		Where("id = ?", userID).
+		Update("storage_used", storageUsed).Error
+}
+
+// IncrementStorageUsed increments the storage used field for a user
+func (r *GormUserRepository) IncrementStorageUsed(userID string, size int64) error {
+	return r.db.Model(&models.User{}).
+		Where("id = ?", userID).
+		Update("storage_used", gorm.Expr("storage_used + ?", size)).Error
+}
+
+// DecrementStorageUsed decrements the storage used field for a user
+func (r *GormUserRepository) DecrementStorageUsed(userID string, size int64) error {
+	return r.db.Model(&models.User{}).
+		Where("id = ?", userID).
+		Update("storage_used", gorm.Expr("GREATEST(storage_used - ?, 0)", size)).Error
 }

@@ -44,7 +44,8 @@ func main() {
 
 	// Initialize domain services
 	userService := user.NewService(userRepo)
-	fileService := file.NewService(fileRepo, folderRepo, storageProvider)
+	storageService := userService.GetStorageService()
+	fileService := file.NewService(fileRepo, folderRepo, storageProvider, storageService)
 	folderService := folder.NewService(folderRepo, fileService)
 	shareService := share.NewService(shareRepo)
 	accessService := access.NewService(fileService, shareService)

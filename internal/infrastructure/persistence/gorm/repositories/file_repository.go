@@ -63,9 +63,26 @@ func (r *GormFileRepository) FindByID(id string) (*file.File, error) {
 }
 
 // FindByUserID finds files by user ID with pagination
-func (r *GormFileRepository) FindByUserID(userID string, limit, offset int) ([]*file.File, error) {
+func (r *GormFileRepository) FindByUserID(userID string, limit, offset int, sortBy, sortDir string) ([]*file.File, error) {
 	var fileModels []models.File
-	if err := r.db.Where("user_id = ?", userID).Limit(limit).Offset(offset).Find(&fileModels).Error; err != nil {
+
+	// Build the query with sorting
+	query := r.db.Where("user_id = ?", userID)
+
+	// Apply sorting based on the sortBy parameter and sortDir
+	switch sortBy {
+	case "name":
+		query = query.Order("name " + sortDir)
+	case "size":
+		query = query.Order("size " + sortDir)
+	case "created_at":
+		query = query.Order("created_at " + sortDir)
+	default:
+		query = query.Order("created_at desc")
+	}
+
+	// Apply pagination
+	if err := query.Limit(limit).Offset(offset).Find(&fileModels).Error; err != nil {
 		return nil, err
 	}
 
